@@ -218,6 +218,27 @@ bool Zforce::ReverseY(bool isReversed)
   return !failed;
 }
 
+//Beginning of DeviceInformation
+
+bool Zforce::DeviceInformation()
+{
+  bool failed = false;
+  uint8_t DeviceInformation[] = {0xEE, 0x08, 0xEE, 0x06, 0x40, 0x02, 0x00, 0x00, 0x6C, 0x00 };
+
+  if (Write(DeviceInformation)) // We assume that the end user has called GetMessage prior to calling this method
+  {
+    failed = true;
+  }
+  else
+  {
+    lastSentMessage = MessageType::DEVICEINFORMATION;
+  }
+
+  return !failed;
+}
+
+//End of DeviceInformation
+
 bool Zforce::ReportedTouches(uint8_t touches)
 {
   bool failed = false;
@@ -382,6 +403,13 @@ void Zforce::ParseResponse(uint8_t* payload, Message** msg)
         (*(msg)) = new DetectionModeMessage;
         (*(msg))->type = MessageType::DETECTIONMODETYPE;
         ParseDetectionMode((DetectionModeMessage*)(*(msg)), payload);
+    }
+    break;
+    case MessageType::DEVICEINFORMATION:
+    {
+      (*(msg)) = new DeviceInformationMessage;
+      (*(msg))->type = MessageType::DEVICEINFORMATION;
+      ParseDeviceInformation((DeviceInformationMessage*)(*(msg)), payload);
     }
     break;
     default:
@@ -562,6 +590,18 @@ void Zforce::ParseReverseY(ReverseYMessage* msg, uint8_t* payload)
     if(payload[i] == 0x85)
     {
       msg->reversed = (bool)payload[i + 2];
+      break;
+    }
+  }
+}
+
+void Zforce::ParseDeviceInformation(DeviceInformationMessage* msg, uint8_t* payload)
+{
+  for(int i = 0; i < payload[11]; i++)
+  {
+    if(payload[i] == 0x75)
+    {
+      msg->configuration = (bool)payload[i + 2];
       break;
     }
   }

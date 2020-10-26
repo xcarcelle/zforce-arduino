@@ -42,7 +42,8 @@ enum class MessageType
 	TOUCHTYPE = 7,
 	BOOTCOMPLETETYPE = 8,
 	FREQUENCYTYPE = 9,
-	DETECTIONMODETYPE = 10
+	DETECTIONMODETYPE = 10,
+	DEVICEINFORMATION = 11
 };
 
 
@@ -134,6 +135,15 @@ typedef struct ReverseYMessage : public Message
 	bool reversed;
 } ReverseYMessage;
 
+typedef struct DeviceInformationMessage : public Message
+{
+	virtual ~DeviceInformationMessage()
+	{
+		
+	}
+	bool configuration;
+} DeviceInformationMessage;
+
 typedef struct ReportedTouchesMessage : public Message
 {
 	virtual ~ReportedTouchesMessage()
@@ -168,6 +178,7 @@ class Zforce
 		bool ReverseY(bool isReversed);
 		bool Frequency(uint16_t idleFrequency, uint16_t fingerFrequency);
 		bool ReportedTouches(uint8_t touches);
+		bool DeviceInformation();
 		bool DetectionMode(bool mergeTouches, bool reflectiveEdgeFilter);		
 		int GetDataReady();
 		Message* GetMessage();
@@ -183,6 +194,7 @@ class Zforce
 		void ParseFlipXY(FlipXYMessage* msg, uint8_t* payload);
 		void ParseTouch(TouchMessage* msg, uint8_t* payload);
 		void ParseDetectionMode(DetectionModeMessage* msg, uint8_t* payload);
+		void ParseDeviceInformation(DeviceInformationMessage* msg, uint8_t* payload);
 		void ParseResponse(uint8_t* payload, Message** msg);
 		void ClearBuffer(uint8_t* buffer);
 		uint8_t buffer[MAX_PAYLOAD];
