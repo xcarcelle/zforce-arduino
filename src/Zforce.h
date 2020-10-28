@@ -135,14 +135,6 @@ typedef struct ReverseYMessage : public Message
 	bool reversed;
 } ReverseYMessage;
 
-typedef struct DeviceInformationMessage : public Message
-{
-	virtual ~DeviceInformationMessage()
-	{
-		
-	}
-	bool configuration;
-} DeviceInformationMessage;
 
 typedef struct ReportedTouchesMessage : public Message
 {
@@ -162,6 +154,15 @@ typedef struct DetectionModeMessage : public Message
 	bool mergeTouches;
 	bool reflectiveEdgeFilter;
 } DetectionModeMessage;
+
+typedef struct DeviceInformationMessage : public Message
+{
+	virtual ~DeviceInformationMessage()
+	{
+		
+	}
+	uint8_t configuration;
+} DeviceInformationMessage;
 
 
 class Zforce 

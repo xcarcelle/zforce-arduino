@@ -595,17 +595,6 @@ void Zforce::ParseReverseY(ReverseYMessage* msg, uint8_t* payload)
   }
 }
 
-void Zforce::ParseDeviceInformation(DeviceInformationMessage* msg, uint8_t* payload)
-{
-  for(int i = 0; i < payload[11]; i++)
-  {
-    if(payload[i] == 0x75)
-    {
-      msg->configuration = (bool)payload[i + 2];
-      break;
-    }
-  }
-}
 
 void Zforce::ParseFlipXY(FlipXYMessage* msg, uint8_t* payload)
 {
@@ -641,6 +630,16 @@ void Zforce::ParseDetectionMode(DetectionModeMessage* msg, uint8_t* payload)
       // Keep looking 
       i += payload[i + 1] + 1;
     }
+  }
+}
+
+void Zforce::ParseDeviceInformation(DeviceInformationMessage* msg, uint8_t* payload)
+{
+  const uint8_t length = payload[1] + 2;
+  for(int i = 0; i < length; i++)
+  {
+      msg->configuration = payload[i + 2];
+      break;
   }
 }
 
