@@ -17,19 +17,19 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-
 #include <string.h>
 #include <inttypes.h>
-#include "I2C/I2C.h"
+//#include "I2C/I2C.h" // no need to add bloat for nothing
 #include "Zforce.h"
-#if USE_I2C_LIB == 0
-  #include <Wire.h>
+//#if USE_I2C_LIB == 0
+  //#include <Wire.h> // no need to add bloat for nothing ( replaced by #include "MYWire/MYWire.h"; within debugger sketch )
+  #include <MYWire.h> // replacement with bigger buffer ( 32 -> 128 bytes )
   #if(ARDUINO >= 100)
     #include <Arduino.h>
   #else
     #include <WProgram.h>
   #endif
-#endif
+//#endif
 
 Zforce::Zforce()
 {
@@ -43,7 +43,7 @@ void Zforce::Start(int dr)
   I2c.setSpeed(1);
   I2c.begin();
 #else
-  Wire.begin();
+  MYWire.begin();
 #endif
 }
 
@@ -62,17 +62,17 @@ int Zforce::Read(uint8_t * payload)
 
   return status; // return 0 if success, otherwise error code according to Atmel Data Sheet
 #else
-  Wire.requestFrom(ZFORCE_I2C_ADDRESS, 2);
-  payload[0] = Wire.read();
-  payload[1] = Wire.read();
-  
+  MYWire.requestFrom(ZFORCE_I2C_ADDRESS, 2);
+  payload[0] = MYWire.read();
+  payload[1] = MYWire.read();
+
   int index = 2;
-  Wire.requestFrom(ZFORCE_I2C_ADDRESS, payload[1]);
-  while (Wire.available())
+  MYWire.requestFrom(ZFORCE_I2C_ADDRESS, payload[1]);
+  while (MYWire.available())
   {
-    payload[index++] = Wire.read();
+    payload[index++] = MYWire.read();
   }
-  
+
   return 0;
 #endif
 }
@@ -80,7 +80,8 @@ int Zforce::Read(uint8_t * payload)
 /*
  * Sends a message in the form of a byte array.
  */
-int Zforce::Write(uint8_t* payload)
+/*
+int Zforce::Write2(uint8_t* payload)
 {
 #if USE_I2C_LIB == 1
   int len = payload[1] + 1;
@@ -88,21 +89,99 @@ int Zforce::Write(uint8_t* payload)
 
   return status; // return 0 if success, otherwise error code according to Atmel Data Sheet
 #else
-  Wire.beginTransmission(ZFORCE_I2C_ADDRESS);
-  Wire.write(payload, payload[1] + 2);
-  Wire.endTransmission();
+  MYWire.beginTransmission(ZFORCE_I2C_ADDRESS);
+  MYWire.write(payload, payload[1] + 2); // ORIGINAL CODE - makes sense: add 0xEE & Len to Len to get total data bytes length to sent over i2c
+  //Wire.write(payload, payload[1]); // doesn't work
+  //Wire.write(payload, payload[1] + 1); // doesn't work
+  //Wire.write(payload, payload[1] + 3); // works - at least for enable, once ..
+  //Wire.write(payload, payload[1] + 4); // didn't work ..
+  //Wire.write(payload, payload[1] + 5); // not either
+  //int len = sizeof(payload)/sizeof(payload[0]); // could it 'simply' be that ? ..
+  //Serial.print("HACKY LEN:"); Serial.print(len);
+  //Wire.write(payload, len); // should logically work ? ( if troubles came from here .. which it seemed .. )
+  MYWire.endTransmission();
 
   return 0;
 #endif
+}*/
+
+/*
+ * Sends a message in the form of a byte array - Tef Mod
+ */
+int Zforce::Write(uint8_t* payload, size_t arraySize)
+//int Zforce::Write(byte* payload)
+{
+/*
+//#if USE_I2C_LIB == 1 // R: errors when compiling anyway ..
+  int len = payload[1] + 1;
+  int status = I2c.write(ZFORCE_I2C_ADDRESS, payload[0], &payload[1], len);
+
+  return status; // return 0 if success, otherwise error code according to Atmel Data Sheet
+//#else
+*/
+  MYWire.beginTransmission(ZFORCE_I2C_ADDRESS);
+  //Wire.write(payload, payload[1] + 2); // ORIGINAL CODE - makes sense: add 0xEE & Len to Len to get total data bytes length to sent over i2c
+  //Wire.write(payload, payload[1]); // doesn't work
+  //Wire.write(payload, payload[1] + 1); // doesn't work
+  //Wire.write(payload, payload[1] + 3); // works - at least for enable, once ..
+  //Wire.write(payload, payload[1] + 4); // didn't work ..
+  //Wire.write(payload, payload[1] + 5); // not either
+  //int len = sizeof(payload)/sizeof(payload[0]); // could it 'simply' be that ? ..
+  //Wire.write(payload, len); // should logically work ? ( if troubles came from here .. which it seemed .. )
+  //Wire.write(payload, sizeof(payload)); // should also logically work ?
+  //int len = sizeof(payload);
+  //Serial.print("HACKY LEN:"); Serial.print(len); // 2 ?! -> ok, something's pretty weird here ..
+  /*
+  int len = payload[1]+2;
+  int len0 = sizeof(payload);
+  int len1 = sizeof(payload)/sizeof(payload[0]);
+  int len2 = sizeof(payload)/sizeof(uint8_t);
+  Serial.print("payload[1]+2 ="); Serial.print(len);
+  Serial.print("\tsizeof(payload) = "); Serial.print(len0);
+  Serial.print("\tsizeof(payload)/sizeof(payload[0]) = "); Serial.print(len1);
+  Serial.print("\tsizeof(payload)/sizeof(uint8_t) = "); Serial.print(len2);
+  Serial.println(); // always equal to 2 .. OK I THINK I GOT IT: "pointer vs array" trouble ? :P
+  */
+  /*
+  int len = payload[1]+2;
+  int len0 = sizeof(&payload);
+  int len1 = sizeof(&payload)/sizeof(&payload[0]);
+  int len2 = sizeof(&payload)/sizeof(uint8_t);
+  Serial.print("payload[1]+2 ="); Serial.print(len);
+  Serial.print("\tsizeof(payload) = "); Serial.print(len0);
+  Serial.print("\tsizeof(payload)/sizeof(payload[0]) = "); Serial.print(len1);
+  Serial.print("\tsizeof(payload)/sizeof(uint8_t) = "); Serial.print(len2);
+  Serial.println(); // always equal to 2 .. OK I THINK I GOT IT: "pointer vs array" trouble ? :P
+  */
+  //Serial.print("passed array size ="); Serial.print(arraySize); // sizeof is fine when not troubled via refs/ptrs ;p
+
+
+  //Wire.write(payload, len);
+  //Wire.write(payload, 12); // hardcoded should at least work ?! INDEED !
+  MYWire.write(payload, arraySize); // ways cleaner !
+  MYWire.endTransmission();
+
+  return 0;
+//#endif
 }
 
+/*
+ * Sends a message in the form of a byte array Tef Mod
+ */
 bool Zforce::Enable(bool isEnabled)
 {
   bool failed = false;
 
-  uint8_t enable[] = {0xEE, 0x0A, 0xEE, 0x08, 0x40, 0x02, 0x02, 0x00, 0x65, 0x02, (uint8_t)(isEnabled ? 0x81 : 0x80), 0x00};
+  uint8_t enable[] = {0xEE, 0x0A, 0xEE, 0x08, 0x40, 0x02, 0x02, 0x00, 0x65, 0x02, (uint8_t)(isEnabled ? 0x81 : 0x80), 0x00}; // original code
+  //byte enable[] = {0xEE, 0x0A, 0xEE, 0x08, 0x40, 0x02, 0x02, 0x00, 0x65, 0x02, (uint8_t)(isEnabled ? 0x81 : 0x80), 0x00}; // passes fine
+  //uint8_t enable[] = {0xEE, 0x0A, 0xEE, 0x08, 0x40, 0x02, 0x02, 0x00, 0x65, 0x02, 0x82, 0x00}; // Ten debug: trying to use the 'reset' request - received ok
+  //uint8_t enable[] = {0xEE, 0x0B, 0xEE, 0x09, 0x40, 0x02, 0x02, 0x00, 0x65, 0x03, 0x81, 0x01, 0x00}; // Tef Debug: trying to specify n of sample touches - received ok
+  //uint8_t enable[] = {0xEE, 0x0B, 0xEE, 0x09, 0x40, 0x02, 0x02, 0x00, 0x65, 0x03, 0x81, 0x01, 0x01}; // Tef Debug: trying to specify n of sample touches - received Zero touch ?
+  //uint8_t enable[] = {0xEE, 0x0B, 0xEE, 0x09, 0x40, 0x02, 0x02, 0x00, 0x65, 0x03, 0x81, 0x01, 0x02}; // Tef Debug: trying to specify n of sample touches - received One touch ?
+  //uint8_t enable[] = {0xEE, 0x0B, 0xEE, 0x09, 0x40, 0x02, 0x02, 0x00, 0x65, 0x03, 0x81, 0x01, 0x03}; // Tef Debug: trying to specify n of sample touches - received Two touch eats indeed
 
-  if (Write(enable)) // We assume that the end user has called GetMessage prior to calling this method
+  //if (Write(enable)) // We assume that the end user has called GetMessage prior to calling this method
+  if (Write(enable, sizeof(enable)/sizeof(enable[0]))) // We assume that the end user has called GetMessage prior to calling this method
   {
     failed = true;
   }
@@ -127,7 +206,8 @@ bool Zforce::TouchActiveArea(uint16_t minX, uint16_t minY, uint16_t maxX, uint16
                                0x82, 0x02, (uint8_t)(maxX >> 8), (uint8_t)(maxX & 0xFF),
                                0x83, 0x02, (uint8_t)(maxY >> 8), (uint8_t)(maxY & 0xFF)};
 
-  if (Write(touchActiveArea)) // We assume that the end user has called GetMessage prior to calling this method
+  //if (Write(touchActiveArea)) // We assume that the end user has called GetMessage prior to calling this method
+  if (Write(touchActiveArea, sizeof(touchActiveArea)/sizeof(touchActiveArea[0])))
   {
     failed = true;
   }
@@ -151,7 +231,8 @@ bool Zforce::Frequency(uint16_t idleFrequency, uint16_t fingerFrequency)
                             0x82, 0x02, (uint8_t)(idleFrequency   >> 8), (uint8_t)(idleFrequency   & 0xFF)};
 
 
-    if (Write(frequency)) // We assume that the end user has called GetMessage prior to calling this method
+    //if (Write(frequency)) // We assume that the end user has called GetMessage prior to calling this method
+    if (Write(frequency, sizeof(frequency)/sizeof(frequency[0])))
     {
         failed = true;
     }
@@ -170,7 +251,8 @@ bool Zforce::FlipXY(bool isFlipped)
 
   uint8_t flipXY[] = {0xEE, 0x0D, 0xEE, 0x0B, 0x40, 0x02, 0x02, 0x00, 0x73, 0x05, 0xA2, 0x03, 0x86, 0x01, (uint8_t)(isFlipped ? 0xFF : 0x00)};
 
-  if (Write(flipXY)) // We assume that the end user has called GetMessage prior to calling this method
+  //if (Write(flipXY)) // We assume that the end user has called GetMessage prior to calling this method
+  if (Write(flipXY, sizeof(flipXY)/sizeof(flipXY[0])))
   {
     failed = true;
   }
@@ -188,7 +270,8 @@ bool Zforce::ReverseX(bool isReversed)
 
   uint8_t reverseX[] = {0xEE, 0x0D, 0xEE, 0x0B, 0x40, 0x02, 0x02, 0x00, 0x73, 0x05, 0xA2, 0x03, 0x84, 0x01, (uint8_t)(isReversed ? 0xFF : 0x00)};
 
-  if (Write(reverseX)) // We assume that the end user has called GetMessage prior to calling this method
+  //if (Write(reverseX)) // We assume that the end user has called GetMessage prior to calling this method
+  if (Write(reverseX, sizeof(reverseX)/sizeof(reverseX[0])))
   {
     failed = true;
   }
@@ -206,7 +289,8 @@ bool Zforce::ReverseY(bool isReversed)
 
   uint8_t reverseY[] = {0xEE, 0x0D, 0xEE, 0x0B, 0x40, 0x02, 0x02, 0x00, 0x73, 0x05, 0xA2, 0x03, 0x85, 0x01, (uint8_t)(isReversed ? 0xFF : 0x00)};
 
-  if (Write(reverseY)) // We assume that the end user has called GetMessage prior to calling this method
+  //if (Write(reverseY)) // We assume that the end user has called GetMessage prior to calling this method
+  if (Write(reverseY, sizeof(reverseY)/sizeof(reverseY[0])))
   {
     failed = true;
   }
@@ -229,7 +313,8 @@ bool Zforce::ReportedTouches(uint8_t touches)
 
   uint8_t reportedTouches[] = {0xEE, 0x0B, 0xEE, 0x09, 0x40, 0x02, 0x02, 0x00, 0x73, 0x03, 0x86, 0x01, touches};
 
-  if (Write(reportedTouches)) // We assume that the end user has called GetMessage prior to calling this method
+  //if (Write(reportedTouches)) // We assume that the end user has called GetMessage prior to calling this method
+  if (Write(reportedTouches, sizeof(reportedTouches)/sizeof(reportedTouches[0])))
   {
     failed = true;
   }
@@ -250,7 +335,8 @@ bool Zforce::DetectionMode(bool mergeTouches, bool reflectiveEdgeFilter)
   detectionModeValue |= reflectiveEdgeFilter ? 0x80 : 0x00; // 0x80 as defined in the ASN.1 protocol
   uint8_t detectionMode[] = {0xEE, 0x0C, 0xEE, 0x0A, 0x40, 0x02, 0x02, 0x00, 0x73, 0x04, 0x85, 0x02, 0x00, detectionModeValue};
 
-  if (Write(detectionMode)) // We assume that the end user has called GetMessage prior to calling this method
+  //if (Write(detectionMode)) // We assume that the end user has called GetMessage prior to calling this method
+  if (Write(detectionMode, sizeof(detectionMode)/sizeof(detectionMode[0])))
   {
     failed = true;
   }
@@ -592,13 +678,13 @@ void Zforce::ParseDetectionMode(DetectionModeMessage* msg, uint8_t* payload)
     {
       // We found it
       uint8_t valueLength = payload[i + 1];
-      msg->mergeTouches = (payload[i + valueLength + 1] & 0x20) != 0; 
+      msg->mergeTouches = (payload[i + valueLength + 1] & 0x20) != 0;
       msg->reflectiveEdgeFilter = (payload[i + valueLength + 1] & 0x80) != 0;
       break;
     }
     else
     {
-      // Keep looking 
+      // Keep looking
       i += payload[i + 1] + 1;
     }
   }

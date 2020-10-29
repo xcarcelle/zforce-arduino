@@ -160,7 +160,8 @@ class Zforce
 		Zforce();
 		void Start(int dr);
 		int Read(uint8_t* payload);
-		int Write(uint8_t* payload);
+		//int Write(uint8_t* payload);
+		int Write(uint8_t* payload, size_t arraySize);
 		bool Enable(bool isEnabled);
 		bool TouchActiveArea(uint16_t minX, uint16_t minY, uint16_t maxX, uint16_t maxY);
 		bool FlipXY(bool isFlipped);
