@@ -170,6 +170,7 @@ class Zforce
     public:
 		Zforce();
 		void Start(int dr);
+		void Stop(int dr);
 		int Read(uint8_t* payload);
 		int Write(uint8_t* payload);
 		bool Enable(bool isEnabled);

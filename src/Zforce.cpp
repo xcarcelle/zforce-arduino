@@ -47,6 +47,17 @@ void Zforce::Start(int dr)
 #endif
 }
 
+void Zforce::Stop(int dr)
+{
+  dataReady = dr;
+  pinMode(dataReady, INPUT);
+#if USE_I2C_LIB == 1
+  I2c.end();
+#else
+  Wire.end();
+#endif
+}
+
 int Zforce::Read(uint8_t * payload)
 {
 #if USE_I2C_LIB == 1
